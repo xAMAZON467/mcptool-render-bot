@@ -1,0 +1,17 @@
+{
+  "name": "mcptool-render-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anti-bot testing helper — launches Mineflayer bots against your own Minecraft server from Render's IP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "node scripts/patch-mineflayer.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "mineflayer": "^4.37.1"
+  }
+}

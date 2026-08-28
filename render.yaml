@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: mcptool-render-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: RUN_TOKEN
+        sync: false
