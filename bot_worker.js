@@ -40,6 +40,12 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
         let verifyDone = false;
         let registerDone = false;
         let loginDone = false;
+        // "scheduled" выставляются СРАЗУ при обнаружении промпта — чтобы 4-секундный
+        // fallback не выстрелил раньше отложенного doLogin/doRegister, если сервер
+        // прислал промпт поздно (после resource-pack/configuration overhead)
+        let verifyScheduled = false;
+        let registerScheduled = false;
+        let loginScheduled = false;
         let finished = false;
 
         const finish = (status) => {
@@ -87,31 +93,37 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
             if (text.trim()) log.push(`chat: ${text}`);
 
             const verifyMatch = text.match(/[Ff]or example:\s*(\.\w+)/);
-            if (verifyMatch && !verifyDone) {
+            if (verifyMatch && !verifyScheduled) {
+                verifyScheduled = true;
                 verifyCmd = verifyMatch[1];
                 setTimeout(doVerify, 500);
             }
 
             // Аккаунт уже зарегистрирован — сервер просит /login, а не /register
             const loginMatch = text.match(/login.*?command:\s*(\/\w+)/i);
-            if (loginMatch && !loginDone && !registerDone) {
+            if (loginMatch && !loginScheduled && !registerScheduled) {
+                loginScheduled = true;
                 loginCmd = loginMatch[1];
                 setTimeout(doLogin, 1500);
                 return;
             }
 
             const regMatch = text.match(/register.*?command:\s*(\/\w+)/i);
-            if (regMatch && !registerDone && !loginDone) {
+            if (regMatch && !registerScheduled && !loginScheduled) {
+                registerScheduled = true;
                 registerCmd = regMatch[1];
                 setTimeout(doRegister, 1500);
             }
 
-            if (/verification/i.test(text) && !verifyMatch && !verifyDone) {
+            if (/verification/i.test(text) && !verifyMatch && !verifyScheduled) {
+                verifyScheduled = true;
                 setTimeout(doVerify, 3000);
             }
-            if (/\blogin\b/i.test(text) && !loginMatch && !loginDone && !registerDone) {
+            if (/\blogin\b/i.test(text) && !loginMatch && !loginScheduled && !registerScheduled) {
+                loginScheduled = true;
                 setTimeout(doLogin, 3000);
-            } else if (/register/i.test(text) && !regMatch && !registerDone && !loginDone) {
+            } else if (/register/i.test(text) && !regMatch && !registerScheduled && !loginScheduled) {
+                registerScheduled = true;
                 setTimeout(doRegister, 3000);
             }
         });
@@ -119,8 +131,8 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
         bot.on('login', () => {
             push('login OK');
             setTimeout(() => {
-                if (!verifyDone && !registerDone && !loginDone) doRegister();
-            }, 4000);
+                if (!verifyScheduled && !registerScheduled && !loginScheduled) doRegister();
+            }, 6000);
         });
 
         bot.on('kicked', (reason) => {
