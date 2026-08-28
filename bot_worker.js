@@ -36,8 +36,10 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
 
         let verifyCmd = '.bind';
         let registerCmd = '/reg';
+        let loginCmd = '/login';
         let verifyDone = false;
         let registerDone = false;
+        let loginDone = false;
         let finished = false;
 
         const finish = (status) => {
@@ -54,17 +56,30 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
             push(`sent verify: ${verifyCmd}`);
         };
 
-        const doRegister = () => {
-            if (registerDone) return;
-            registerDone = true;
-            const cmd = `${registerCmd} ${regPassword} ${regPassword}`;
-            bot.chat(cmd);
-            push(`sent register: ${cmd}`);
+        const sendFinal = () => {
             setTimeout(() => {
                 bot.chat(finalMessage);
                 push(`sent final: ${finalMessage}`);
                 setTimeout(() => finish('ok'), 1000);
             }, 2000);
+        };
+
+        const doRegister = () => {
+            if (registerDone || loginDone) return;
+            registerDone = true;
+            const cmd = `${registerCmd} ${regPassword} ${regPassword}`;
+            bot.chat(cmd);
+            push(`sent register: ${cmd}`);
+            sendFinal();
+        };
+
+        const doLogin = () => {
+            if (loginDone || registerDone) return;
+            loginDone = true;
+            const cmd = `${loginCmd} ${regPassword}`;
+            bot.chat(cmd);
+            push(`sent login: ${cmd}`);
+            sendFinal();
         };
 
         bot.on('message', (jsonMsg) => {
@@ -77,8 +92,16 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
                 setTimeout(doVerify, 500);
             }
 
-            const regMatch = text.match(/command:\s*(\/\w+)/);
-            if (regMatch && !registerDone) {
+            // Аккаунт уже зарегистрирован — сервер просит /login, а не /register
+            const loginMatch = text.match(/login.*?command:\s*(\/\w+)/i);
+            if (loginMatch && !loginDone && !registerDone) {
+                loginCmd = loginMatch[1];
+                setTimeout(doLogin, 1500);
+                return;
+            }
+
+            const regMatch = text.match(/register.*?command:\s*(\/\w+)/i);
+            if (regMatch && !registerDone && !loginDone) {
                 registerCmd = regMatch[1];
                 setTimeout(doRegister, 1500);
             }
@@ -86,7 +109,9 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
             if (/verification/i.test(text) && !verifyMatch && !verifyDone) {
                 setTimeout(doVerify, 3000);
             }
-            if (/register/i.test(text) && !regMatch && !registerDone) {
+            if (/\blogin\b/i.test(text) && !loginMatch && !loginDone && !registerDone) {
+                setTimeout(doLogin, 3000);
+            } else if (/register/i.test(text) && !regMatch && !registerDone && !loginDone) {
                 setTimeout(doRegister, 3000);
             }
         });
@@ -94,7 +119,7 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
         bot.on('login', () => {
             push('login OK');
             setTimeout(() => {
-                if (!verifyDone && !registerDone) doRegister();
+                if (!verifyDone && !registerDone && !loginDone) doRegister();
             }, 4000);
         });
 

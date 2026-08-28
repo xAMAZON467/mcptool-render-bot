@@ -24,8 +24,8 @@ function pickNames(n) {
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-async function launchBots({ host, port, version, count, message, delay, regPassword }) {
-    const names = pickNames(count);
+async function launchBots({ host, port, version, count, message, delay, regPassword, names: fixedNames }) {
+    const names = fixedNames && fixedNames.length ? fixedNames : pickNames(count);
     const results = [];
     for (let i = 0; i < names.length; i++) {
         const name = names[i];
@@ -66,6 +66,7 @@ const server = http.createServer(async (req, res) => {
                 const message = params.message || 'Я бот для тестирования проверки на бота';
                 const delay = parseFloat(params.delay ?? '3');
                 const regPassword = params.regPassword || 'Test12121212';
+                const names = Array.isArray(params.names) ? params.names.map(String) : (params.name ? [String(params.name)] : null);
 
                 if (!host) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -76,7 +77,7 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.write(JSON.stringify({ status: 'started', host, port, count }) + '\n');
 
-                const results = await launchBots({ host, port, version, count, message, delay, regPassword });
+                const results = await launchBots({ host, port, version, count, message, delay, regPassword, names });
                 res.end(JSON.stringify({ status: 'done', results }));
             } catch (e) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
