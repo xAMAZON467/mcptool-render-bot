@@ -65,7 +65,7 @@ const server = http.createServer(async (req, res) => {
                 const count = Math.min(parseInt(params.count, 10) || 1, 20);
                 const message = params.message || 'Я бот для тестирования проверки на бота';
                 const delay = parseFloat(params.delay ?? '3');
-                const regPassword = params.regPassword || '1212';
+                const regPassword = params.regPassword || 'Test12121212';
 
                 if (!host) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
