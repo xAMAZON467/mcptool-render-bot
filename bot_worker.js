@@ -69,6 +69,7 @@ function runBot({ host, port, version, name, finalMessage, regPassword }) {
 
         bot.on('message', (jsonMsg) => {
             const text = jsonMsg.toString();
+            if (text.trim()) log.push(`chat: ${text}`);
 
             const verifyMatch = text.match(/[Ff]or example:\s*(\.\w+)/);
             if (verifyMatch && !verifyDone) {
